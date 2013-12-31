@@ -6,8 +6,6 @@ function chainit(Constructor) {
     Constructor.apply(this, arguments);
   }
 
-  Chain.prototype = Object.create(Constructor.prototype);
-
   var Queue = require('queue');
   var queues = [];
   var currentDepth = 0;
@@ -52,27 +50,14 @@ function chainit(Constructor) {
     return queue;
   }
 
-  // static methods, not chained
-  Object.keys(Constructor)
-    .forEach(function(name) {
-      Chain[name] = new Function(Constructor[name]);
-    });
-
-  // prototype methods, chained
-  Object
-    .keys(Constructor.prototype)
-    .forEach(function(fnName) {
-      Chain.prototype[fnName] = makeChain(fnName, Constructor.prototype[fnName]);
-    });
-
-  function makeChain(fnName, fn) {
+  function makeChain(fn) {
 
     return function chained() {
       var ctx = this;
       var args = Array.prototype.slice.call(arguments);
-      var customCb;
+      var customCallback;
       if (typeof args[args.length - 1] === 'function') {
-        customCb = args.pop();
+        customCallback = args.pop();
       }
 
       var ldepth = currentDepth;
@@ -81,18 +66,18 @@ function chainit(Constructor) {
         queues[currentDepth - 1].concurrency = 0;
       }
 
-      var task = function(cb) {
+      var task = function(callback) {
         setTimeout(function() {
           currentDepth = ldepth + 1;
 
           args.push(function() {
-            var cbArgs = arguments;
+            var callbackArgs = arguments;
 
-            if (customCb) {
-              customCb.apply(ctx, cbArgs);
+            if (customCallback) {
+              customCallback.apply(ctx, callbackArgs);
             }
 
-            cb();
+            callback();
           });
 
           fn.apply(ctx, args);
@@ -105,8 +90,24 @@ function chainit(Constructor) {
     }
   }
 
+  Chain.prototype = Object.create(Constructor.prototype);
+
+  // static methods, not chained
+  Object.keys(Constructor)
+    .forEach(function(name) {
+      Chain[name] = new Function(Constructor[name]);
+    });
+
+  // prototype methods, chained
+  Object.keys(Constructor.prototype)
+    .forEach(function(fnName) {
+      if(typeof Constructor.prototype[fnName] === 'function') {
+        Chain.prototype[fnName] = makeChain(Constructor.prototype[fnName]);
+      }
+    });
+
   Chain.prototype.__addToChain = function(fnName, fn) {
-    this[fnName] = makeChain(fnName, fn);
+    this[fnName] = makeChain(fn);
   }
 
   return Chain;
