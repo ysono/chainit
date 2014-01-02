@@ -112,7 +112,7 @@ function chainit(Constructor) {
       pushTo(currentDepth, task);
 
       return this;
-    }
+    };
   }
 
   Chain.prototype = Object.create(Constructor.prototype);
