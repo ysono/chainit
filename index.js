@@ -72,12 +72,15 @@ function chainit(Constructor) {
 
           args.push(function() {
             var callbackArgs = arguments;
+            var customCallbackResult;
 
             if (customCallback) {
-              customCallback.apply(ctx, callbackArgs);
+              customCallbackResult = customCallback.apply(ctx, callbackArgs);
             }
 
-            callback();
+            if(customCallbackResult !== false) {
+              callback();
+            }
           });
 
           fn.apply(ctx, args);
@@ -87,7 +90,7 @@ function chainit(Constructor) {
       pushTo(currentDepth, task);
 
       return this;
-    }
+    };
   }
 
   Chain.prototype = Object.create(Constructor.prototype);
