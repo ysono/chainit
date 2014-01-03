@@ -6,6 +6,8 @@ function chainit(Constructor) {
     Constructor.apply(this, arguments);
   }
 
+  Chain.prototype = Object.create(Constructor.prototype);
+
   var Queue = require('queue');
   var queues = [];
   var currentDepth = 0;
@@ -74,52 +76,6 @@ function chainit(Constructor) {
     return queue;
   }
 
-  function makeChain(fn) {
-
-    return function chained() {
-      var ctx = this;
-      var args = Array.prototype.slice.call(arguments);
-      var customCb;
-
-      if (typeof args[args.length - 1] === 'function') {
-        customCallback = args.pop();
-      }
-
-      var ldepth = currentDepth;
-
-      if (currentDepth > 0 && queues[currentDepth - 1].concurrency > 0) {
-        queues[currentDepth - 1].concurrency = 0;
-      }
-
-      var task = function(cb) {
-        process.nextTick(function() {
-          currentDepth = ldepth + 1;
-
-          args.push(function() {
-            var callbackArgs = arguments;
-            var customCallbackResult;
-
-            if (customCallback) {
-              customCallbackResult = customCallback.apply(ctx, callbackArgs);
-            }
-
-            if(customCallbackResult !== false) {
-              callback();
-            }
-          });
-
-          fn.apply(ctx, args);
-        });
-      }
-
-      pushTo(currentDepth, task);
-
-      return this;
-    };
-  }
-
-  Chain.prototype = Object.create(Constructor.prototype);
-
   // static methods, not chained
   Object.keys(Constructor)
     .forEach(function(name) {
@@ -133,6 +89,50 @@ function chainit(Constructor) {
         Chain.prototype[fnName] = makeChain(Constructor.prototype[fnName]);
       }
     });
+
+  function makeChain(fn) {
+
+    return function chained() {
+      var ctx = this;
+      var args = Array.prototype.slice.call(arguments);
+      var customCb;
+
+      if (typeof args[args.length - 1] === 'function') {
+        customCb = args.pop();
+      }
+
+      var ldepth = currentDepth;
+
+      if (currentDepth > 0 && queues[currentDepth - 1].concurrency > 0) {
+        queues[currentDepth - 1].concurrency = 0;
+      }
+
+      var task = function(cb) {
+        process.nextTick(function() {
+          currentDepth = ldepth + 1;
+
+          args.push(function() {
+            var cbArgs = arguments;
+            var customCbResult;
+
+            if (customCb) {
+              customCbResult = customCb.apply(ctx, cbArgs);
+            }
+
+            if(customCbResult !== false) {
+              cb();
+            }
+          });
+
+          fn.apply(ctx, args);
+        });
+      }
+
+      pushTo(currentDepth, task);
+
+      return this;
+    };
+  }
 
   Chain.prototype.__addToChain = function(fnName, fn) {
     this[fnName] = makeChain(fn);
