@@ -96,13 +96,16 @@ function chainit(Constructor) {
           currentDepth = ldepth + 1;
 
           args.push(function() {
-            var cbArgs = arguments;
+            var callbackArgs = arguments;
+            var customCallbackResult;
 
-            if (customCb) {
-              customCb.apply(ctx, cbArgs);
+            if (customCallback) {
+              customCallbackResult = customCallback.apply(ctx, callbackArgs);
             }
 
-            cb();
+            if(customCallbackResult !== false) {
+              callback();
+            }
           });
 
           fn.apply(ctx, args);
