@@ -365,4 +365,23 @@ describe('chaining an Api', function() {
       })
   });
 
+  describe('supports aborting', function() {
+    it('supports aborting', function(done) {
+      o
+        .concat('Ceci')
+        .concat(' n\'est pas une')
+        .concat(' pipe', function() {
+          assert.equal(o.s, 'Ceci n\'est pas une pipe');
+          setTimeout(done, 1000); // picking a time long enough for the rest of the chain to run.
+          return false;
+        })
+        .concat('t', function() {
+          assert(false, 'This method is not expected to have been invoked.');
+        })
+        .concat('te', function() {
+          assert(false, 'This method is not expected to have been invoked.');
+        });
+    });
+  });
+
 });
