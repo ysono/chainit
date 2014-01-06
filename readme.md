@@ -79,6 +79,7 @@ Features:
 * supports setTimeout(cb)
 * supports methods redifinition
 * supports adding new methods
+* supports aborting the chain -- to abort, custom callback can return `false`
 * fully tested! local: `npm install -g mocha && mocha`, saucelabs: `npm test`
 
 ## tests
